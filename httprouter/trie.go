@@ -20,10 +20,11 @@ func NewTree() *Tree {
 	}
 }
 
-func (t *Tree) Insert(path string, handler http.Handler, methods ...string) {
+func (t *Tree) Insert(path string, handler http.Handler, mid []Middleware , methods ...string) {
 	actualRoute := t.node
 	if path == ROOT {
 		actualRoute.Methods = append(actualRoute.Methods, methods...)
+		actualRoute.Middleware = mid
 		actualRoute.Handle = handler
 	} else {
 		roads := strings.Split(path, "/")
@@ -33,14 +34,14 @@ func (t *Tree) Insert(path string, handler http.Handler, methods ...string) {
 				actualRoute = NextRoute
 			}
 			if !ok {
-				actualRoute.Child[routeName] = NewRoute(routeName, handler, methods...)
+				actualRoute.Child[routeName] = NewRoute(routeName, handler, mid, methods...)
 				actualRoute = actualRoute.Child[routeName]
 			}
 		}
 	}
 }
 
-func (t *Tree) Search(method string, path string) (http.Handler, error) {
+func (t *Tree) Search(method string, path string) (http.Handler, []Middleware, error) {
 	actualRoute := t.node
 	if path != ROOT {
 		roads := strings.Split(path, "/")
@@ -51,7 +52,7 @@ func (t *Tree) Search(method string, path string) (http.Handler, error) {
 					break
 				} else {
 					err := errors.New(ROUTE_NOT_FOUND)
-					return nil, err
+					return nil, nil, err
 				}
 			}
 			actualRoute = nextRoute
@@ -60,8 +61,8 @@ func (t *Tree) Search(method string, path string) (http.Handler, error) {
 	err := actualRoute.IsAllowed(method)
 	if err != nil {
 		
-		return nil, err
+		return nil, nil, err
 	}
 	fmt.Println(actualRoute.Label)
-	return actualRoute.Handle, nil
+	return actualRoute.Handle, actualRoute.Middleware, nil
 }

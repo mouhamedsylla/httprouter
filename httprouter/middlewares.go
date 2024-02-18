@@ -1,6 +1,7 @@
 package httprouter
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -32,5 +33,24 @@ func AuthenticationMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
+	})
+}
+
+
+func Mid1(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "I am a middle one")
+	})
+}
+
+func Mid2(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "I am a middle two")
+	})
+}
+
+func Mid3(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "I am a middle three")
 	})
 }

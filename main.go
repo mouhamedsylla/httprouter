@@ -2,16 +2,17 @@ package main
 
 import (
 	"net/http"
-	"github.com/mouhamedsylla/httprouter"
+
+	"github.com/mouhamedsylla/httprouter/httprouter"
 )
 
 func main() {
 	router := httprouter.NewRouter()
-	router.Use(httprouter.CORSMiddleware())
+	//router.Use(httprouter.CORSMiddleware)
 
-	router.Method(http.MethodGet).Handler("/", Home())
-	router.Method(http.MethodPost).Handler("/foo", FooPage())
-	router.Method(http.MethodGet).Handler("/foo/bar", FooBarPage())
+	router.Method(http.MethodGet).Middleware(httprouter.CORSMiddleware, httprouter.Mid1).Handler("/", Home())
+	router.Method(http.MethodGet).Middleware(httprouter.CORSMiddleware, httprouter.Mid2).Handler("/foo", FooPage())
+	router.Method(http.MethodGet).Middleware(httprouter.CORSMiddleware, httprouter.Mid3).Handler("/foo/bar", FooBarPage())
 
 	http.ListenAndServe(":8080", router)
 }

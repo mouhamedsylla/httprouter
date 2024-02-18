@@ -17,12 +17,13 @@ func NewRouter() *Router {
 	}
 }
 
-func NewRoute(label string, handler http.Handler, methods ...string) *Route {
+func NewRoute(label string, handler http.Handler, mid []Middleware, methods ...string) *Route {
 	return &Route{
-		Label:   label,
-		Methods: methods,
-		Handle:  handler,
-		Child:   make(map[string]*Route),
+		Label:      label,
+		Methods:    methods,
+		Handle:     handler,
+		Child:      make(map[string]*Route),
+		Middleware: mid,
 	}
 }
 
@@ -31,19 +32,20 @@ func (R *Router) Method(methods ...string) *Router {
 	return R
 }
 
-func (R *Router) Handler(path string, handler http.Handler) {
-	R.TempRoute.Handle = handler
-	R.t.Insert(path, R.TempRoute.Handle, R.TempRoute.Methods...)
+func (R *Router) Middleware(m ...Middleware) *Router {
+	R.TempRoute.Middleware = m
+	return R
 }
 
-func (R *Router) Use(middleware Middleware) {
-	R.middlewares = append(R.middlewares, middleware)
+func (R *Router) Handler(path string, handler http.Handler) {
+	R.TempRoute.Handle = handler
+	R.t.Insert(path, R.TempRoute.Handle, R.TempRoute.Middleware, R.TempRoute.Methods...)
 }
 
 func (R *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	path := r.URL.Path
-	handler, err := R.t.Search(method, path)
+	handler, middlewares, err := R.t.Search(method, path)
 	if err != nil {
 		status, msg := HandleError(err)
 		w.WriteHeader(status)
@@ -51,7 +53,7 @@ func (R *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, middleware := range R.middlewares {
+	for _, middleware := range middlewares {
 		handler = middleware(handler)
 	}
 	handler.ServeHTTP(w, r)

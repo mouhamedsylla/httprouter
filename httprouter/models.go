@@ -10,7 +10,6 @@ type Middleware func(http.Handler) http.Handler
 
 type Router struct {
 	t         *Tree
-	middlewares []Middleware
 	TempRoute Route
 }
 
@@ -19,4 +18,5 @@ type Route struct {
 	Methods []string
 	Handle  http.Handler
 	Child   map[string]*Route
+	Middleware []Middleware
 }
