@@ -3,6 +3,7 @@ package httprouter
 import (
 	"errors"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -42,9 +43,36 @@ func (R *Router) Handler(path string, handler http.Handler) {
 	R.t.Insert(path, R.TempRoute.Handle, R.TempRoute.Middleware, R.TempRoute.Methods...)
 }
 
+func (R *Router) ServeStatic() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		filePath := r.URL.Path[len(R.Static.Prefix):]
+		file, err := R.Static.Dir.Open(filePath)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer file.Close()
+
+		fileInfos, err := file.Stat()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		http.ServeContent(w, r, filePath, fileInfos.ModTime(), file)
+	})
+}
+
+func (R *Router) SetDirectory(prefix string, dir string) {
+	R.Static.Prefix = prefix
+	R.Static.Dir = http.Dir(dir)
+}
+
 func (R *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	path := r.URL.Path
+	if strings.Contains(path, R.Static.Prefix) {
+		path = R.Static.Prefix
+	}
 	handler, middlewares, err := R.t.Search(method, path)
 	if err != nil {
 		status, msg := HandleError(err)
@@ -53,8 +81,10 @@ func (R *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, middleware := range middlewares {
-		handler = middleware(handler)
+	if len(middlewares) > 0 {
+		for _, middleware := range middlewares {
+			handler = middleware(handler)
+		}
 	}
 	handler.ServeHTTP(w, r)
 }

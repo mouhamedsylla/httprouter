@@ -2,7 +2,6 @@ package httprouter
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 )
@@ -63,6 +62,5 @@ func (t *Tree) Search(method string, path string) (http.Handler, []Middleware, e
 		
 		return nil, nil, err
 	}
-	fmt.Println(actualRoute.Label)
 	return actualRoute.Handle, actualRoute.Middleware, nil
 }

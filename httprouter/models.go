@@ -11,6 +11,7 @@ type Middleware func(http.Handler) http.Handler
 type Router struct {
 	t         *Tree
 	TempRoute Route
+	Static Directory
 }
 
 type Route struct {
@@ -19,4 +20,9 @@ type Route struct {
 	Handle  http.Handler
 	Child   map[string]*Route
 	Middleware []Middleware
+}
+
+type Directory struct {
+	Prefix string
+	Dir http.Dir
 }
