@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"text/template"
 
 	"github.com/mouhamedsylla/httprouter/httprouter"
 )
@@ -13,40 +13,83 @@ func main() {
 
 	router.SetDirectory("/static/", "./static")
 	router.Method(http.MethodGet).Handler("/static/", router.ServeStatic())
-	router.Method(http.MethodGet, http.MethodPost).Middleware(httprouter.Mid1, httprouter.CORSMiddleware).Handler("/", Home())
-	router.Method(http.MethodGet).Middleware(httprouter.Mid2, httprouter.CORSMiddleware).Handler("/foo", FooPage())
-	router.Method(http.MethodGet).Middleware(httprouter.Mid3, httprouter.CORSMiddleware).Handler("/foo/bar", FooBarPage())
-	router.Method(http.MethodGet).Middleware(httprouter.CORSMiddleware).Handler("/test", Test())
+	router.Method(http.MethodGet).Handler("/api/message/private", privateStatic())
+	router.Method(http.MethodGet).Handler("/api/message/private/:senderId", privateDynamic())
+	// router.Method(http.MethodGet, http.MethodPost).Middleware(httprouter.Mid1, httprouter.CORSMiddleware).Handler("/", Home())
+	// router.Method(http.MethodGet).Middleware(httprouter.Mid2, httprouter.CORSMiddleware).Handler("/foo", FooPage())
+	// router.Method(http.MethodGet).Middleware(httprouter.Mid3, httprouter.CORSMiddleware).Handler("/foo/bar", FooBarPage())
+	// router.Method(http.MethodGet).Middleware(httprouter.CORSMiddleware).Handler("/test", Test())
+	fmt.Println("tree:", router.Tree.Node.Child)
 
+	for i, v := range router.Tree.Node.Child {
+		fmt.Println(i, "  ---  ", v)
+	}
 	http.ListenAndServe(":8081", router)
+	// ctx, cancel := context.WithCancel(context.Background())
+	// defer cancel()
+
+	// server := http.Server{
+	// 	Addr: ":8081",
+	// }
+
+	// go func() {
+	// 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
+	// 		log.Fatalf("ListenAndServe(): %v", err)
+	// 	}
+	// }()
+
+	// quit := make(chan os.Signal, 1)
+	// signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	// <-quit
+	// log.Println("Arrêt du serveur en cours...")
+
+	// ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
+	// defer cancel()
+
+	// if err := server.Shutdown(ctx); err != nil {
+	// 	log.Fatalf("Arrêt forcé du serveur : %v", err)
+	// }
+	// log.Println("Serveur arrêté")
 }
 
-func Home() http.Handler {
+func privateStatic() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Get /"))
+		w.Write([]byte("Get /api/message/private"))
 	})
 }
 
-func FooPage() http.Handler {
+func privateDynamic() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Get /foo"))
+		w.Write([]byte("Get /api/message/private/:senderId"))
 	})
 }
 
-func FooBarPage() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Get /foo/bar"))
-	})
-}
+// func Home() http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		w.Write([]byte("Get /"))
+// 	})
+// }
 
-func Test() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tmpl, err := template.ParseFiles("static/index.html")
-		if err != nil {
-			http.Error(w, "Ressource Not Found", http.StatusNotFound)
-			return
-		}
+// func FooPage() http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		w.Write([]byte("Get /foo"))
+// 	})
+// }
 
-		tmpl.Execute(w, nil)
-	})
-}
+// func FooBarPage() http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		w.Write([]byte("Get /foo/bar"))
+// 	})
+// }
+
+// func Test() http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		tmpl, err := template.ParseFiles("static/index.html")
+// 		if err != nil {
+// 			http.Error(w, "Ressource Not Found", http.StatusNotFound)
+// 			return
+// 		}
+
+// 		tmpl.Execute(w, nil)
+// 	})
+// }

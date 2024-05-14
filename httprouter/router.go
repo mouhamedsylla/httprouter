@@ -9,20 +9,20 @@ import (
 const (
 	METHOD_NOT_ALLOWED = "method not allowed"
 	ROUTE_NOT_FOUND    = "route not found"
+	PAGE_NOT_FOUND = "page not found"
 )
 
 func NewRouter() *Router {
 	return &Router{
-		t:         NewTree(),
+		Tree:         NewTree(),
 		TempRoute: Route{},
 	}
 }
 
-func NewRoute(label string, handler http.Handler, mid []Middleware, methods ...string) *Route {
+func NewRoute(label string, mid []Middleware, methods ...string) *Route {
 	return &Route{
 		Label:      label,
 		Methods:    methods,
-		Handle:     handler,
 		Child:      make(map[string]*Route),
 		Middleware: mid,
 	}
@@ -40,7 +40,8 @@ func (R *Router) Middleware(m ...Middleware) *Router {
 
 func (R *Router) Handler(path string, handler http.Handler) {
 	R.TempRoute.Handle = handler
-	R.t.Insert(path, R.TempRoute.Handle, R.TempRoute.Middleware, R.TempRoute.Methods...)
+	R.Tree.Insert(path, R.TempRoute.Handle, R.TempRoute.Middleware, R.TempRoute.Methods...)
+	R.TempRoute.Middleware = []Middleware{}
 }
 
 func (R *Router) ServeStatic() http.Handler {
@@ -73,7 +74,7 @@ func (R *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(path, R.Static.Prefix) {
 		path = R.Static.Prefix
 	}
-	handler, middlewares, err := R.t.Search(method, path)
+	handler, middlewares, err := R.Tree.Search(method, path)
 	if err != nil {
 		status, msg := HandleError(err)
 		w.WriteHeader(status)
@@ -97,6 +98,9 @@ func HandleError(err error) (status int, msg string) {
 	case ROUTE_NOT_FOUND:
 		status = http.StatusNotFound
 		msg = ROUTE_NOT_FOUND
+	case PAGE_NOT_FOUND:
+		status = http.StatusNotFound
+		msg = PAGE_NOT_FOUND
 	}
 	return
 }
