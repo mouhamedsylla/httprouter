@@ -2,7 +2,6 @@ package httprouter
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 )
@@ -54,7 +53,7 @@ func (t *Tree) Insert(path string, handler http.Handler, mid []Middleware, metho
 	}
 }
 
-func (t *Tree) Search(method string, path string) (http.Handler, []Middleware, error) {
+func (t *Tree) Search(method string, path string) (http.Handler, []Middleware, map[string]string, error) {
 	actualRoute := t.Node
 	custom_routes := make(map[string]string)
 	if path != ROOT {
@@ -76,15 +75,15 @@ func (t *Tree) Search(method string, path string) (http.Handler, []Middleware, e
 			actualRoute = nextRoute
 		}
 	}
-	
+
 	if actualRoute.Handle == nil {
 		err := errors.New(PAGE_NOT_FOUND)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if err := actualRoute.IsAllowed(method); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return actualRoute.Handle, actualRoute.Middleware, nil
+	return actualRoute.Handle, actualRoute.Middleware, custom_routes, nil
 }
