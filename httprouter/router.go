@@ -19,12 +19,14 @@ func NewRouter() *Router {
 	}
 }
 
+
 func NewRoute(label string, mid []Middleware, methods ...string) *Route {
 	return &Route{
 		Label:      label,
 		Methods:    methods,
 		Child:      make(map[string]*Route),
 		Middleware: mid,
+		Param: Param{},
 	}
 }
 

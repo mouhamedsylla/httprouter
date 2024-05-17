@@ -2,6 +2,7 @@ package httprouter
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -9,12 +10,6 @@ import (
 const (
 	ROOT = "/"
 )
-
-func NewParam(key string) Params {
-	return Params{
-		key: key,
-	}
-}
 
 func NewTree() *Tree {
 	return &Tree{
@@ -27,6 +22,7 @@ func NewTree() *Tree {
 
 func (t *Tree) Insert(path string, handler http.Handler, mid []Middleware, methods ...string) {
 	actualRoute := t.Node
+	buf := ""
 	if path == ROOT {
 		actualRoute.Methods = append(actualRoute.Methods, methods...)
 		actualRoute.Middleware = mid
@@ -35,9 +31,8 @@ func (t *Tree) Insert(path string, handler http.Handler, mid []Middleware, metho
 		roads := strings.Split(path, "/")
 		for i, routeName := range roads[1:] {
 			if strings.HasPrefix(routeName, ":") {
-				actualRoute.IsDynamic = true
-				actualRoute.Params = append(actualRoute.Params, NewParam(routeName[1:]))
-				continue
+				buf = routeName[1:]
+				routeName = "?"
 			}
 			NextRoute, ok := actualRoute.Child[routeName]
 			if ok {
@@ -46,6 +41,10 @@ func (t *Tree) Insert(path string, handler http.Handler, mid []Middleware, metho
 			if !ok {
 				actualRoute.Child[routeName] = NewRoute(routeName, mid, methods...)
 				actualRoute = actualRoute.Child[routeName]
+				if routeName == "?" {
+					actualRoute.IsDynamic = true
+					actualRoute.Param.Key = buf
+				}
 			}
 
 			if i == len(roads[1:])-1 {
@@ -57,40 +56,35 @@ func (t *Tree) Insert(path string, handler http.Handler, mid []Middleware, metho
 
 func (t *Tree) Search(method string, path string) (http.Handler, []Middleware, error) {
 	actualRoute := t.Node
-	k := 0
+	custom_routes := make(map[string]string)
 	if path != ROOT {
 		roads := strings.Split(path, "/")
 		for _, routeName := range roads[1:] {
 
 			nextRoute, ok := actualRoute.Child[routeName]
+
 			if !ok {
-				if actualRoute.IsDynamic {
-					if k >= len(actualRoute.Params) {
-						err := errors.New(ROUTE_NOT_FOUND)
-						return nil, nil, err
-					}
-					actualRoute.Params[k].value = routeName
-					k++
-					continue
-				}
-				if routeName == actualRoute.Label || actualRoute.IsDynamic {
+				nextRoute, ok = actualRoute.Child["?"]
+				if !ok {
 					break
-				} else {
-					err := errors.New(ROUTE_NOT_FOUND)
-					return nil, nil, err
 				}
+				actualRoute = nextRoute
+				actualRoute.Param.Value = routeName
+				custom_routes[actualRoute.Param.Key] = actualRoute.Param.Value
+				continue
 			}
 			actualRoute = nextRoute
-
 		}
 	}
-	if err := actualRoute.IsAllowed(method); err != nil {
-		return nil, nil, err
-	}
-
+	
 	if actualRoute.Handle == nil {
 		err := errors.New(PAGE_NOT_FOUND)
 		return nil, nil, err
 	}
+
+	if err := actualRoute.IsAllowed(method); err != nil {
+		return nil, nil, err
+	}
+
 	return actualRoute.Handle, actualRoute.Middleware, nil
 }
