@@ -73,7 +73,7 @@ func (R *Router) SetDirectory(prefix string, dir string) {
 func (R *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	path := r.URL.Path
-	if strings.Contains(path, R.Static.Prefix) {
+	if strings.Contains(path, R.Static.Prefix) && R.Static.Prefix != ""{
 		path = R.Static.Prefix
 	}
 	handler, middlewares, custom_routes, err := R.Tree.Search(method, path)
