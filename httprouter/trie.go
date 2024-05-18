@@ -28,15 +28,12 @@ func (t *Tree) Insert(path string, handler http.Handler, mid []Middleware, metho
 		actualRoute.Handle = handler
 	} else {
 		roads := strings.Split(path, "/")
-		for i, routeName := range roads[1:] {
+		for _, routeName := range roads[1:] {
 			if strings.HasPrefix(routeName, ":") {
 				buf = routeName[1:]
 				routeName = "?"
 			}
 			NextRoute, ok := actualRoute.Child[routeName]
-			if ok {
-				actualRoute = NextRoute
-			}
 			if !ok {
 				actualRoute.Child[routeName] = NewRoute(routeName, mid, methods...)
 				actualRoute = actualRoute.Child[routeName]
@@ -44,12 +41,11 @@ func (t *Tree) Insert(path string, handler http.Handler, mid []Middleware, metho
 					actualRoute.IsDynamic = true
 					actualRoute.Param.Key = buf
 				}
+				continue
 			}
-
-			if i == len(roads[1:])-1 {
-				actualRoute.Handle = handler
-			}
+			actualRoute = NextRoute
 		}
+		actualRoute.Handle = handler
 	}
 }
 
